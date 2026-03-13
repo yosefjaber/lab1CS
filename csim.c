@@ -1,16 +1,56 @@
 #include "lab1.h"
 #include <stdio.h>
+#include <getopt.h>
+#include <stdlib.h>
+
+typedef struct {
+    int valid;  
+    int tag; 
+} CacheLine;
+
+typedef struct {
+    CacheLine *lines; 
+} CacheSet;
+
+typedef struct {
+    CacheSet *sets;  
+} Cache;
 
 int main(int argc, char *argv[])
 {
-    printf("%s\n %s\n",argv[0], argv[1]);
+    int s, E, b, opt;
+    char *trace_file;
 
-    char *sets = argv[1];
-    char *lines_per_set = argv[2];
-    char *bytes_per_block = argv[3];
-    char *trace_file = argv[4];
+    while ((opt = getopt(argc, argv, "s:E:b:t:")) != -1) {
+        switch (opt) {
+            case 's':
+                s = atoi(optarg);
+                break;
+            case 'E':
+                E = atoi(optarg);
+                break;
+            case 'b':
+                b = atoi(optarg);
+                break;
+            case 't':
+                trace_file = optarg;
+                break;
+        }
+    }
 
-    printf("\n%s", trace_file);
+    Cache MainMemory;
+
+    for(int i = 0; i < s; i++)
+    {
+        CacheSet set;
+        for(int j = 0; j < E; j++)
+        {
+            CacheLine line;
+            line.valid, line.tag = 0x0;
+        }
+    }
+
+
 
 
     //printSummary(0, 0, 0);
