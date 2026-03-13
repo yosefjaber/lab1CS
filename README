@@ -1,0 +1,31 @@
+This is the handout directory for lab1
+
+************************
+Running the autograders:
+************************
+
+Before running the autograders, compile your code:
+    linux> make
+
+Check the correctness of your simulator:
+    linux> ./test-csim
+
+Then run the driver program (this is the program that your instructor runs):
+    linux> python driver.py    
+
+******
+Files:
+******
+
+# You will be modifying and handing in the following file (will be archived before hand-in)
+csim.c       Your cache simulator
+
+# Tools for evaluating your simulator
+Makefile     Builds the simulator and tools
+README       This file
+driver.py*   The driver program, runs test-csim
+lab1.c       Required helper functions
+lab1.h       Required header file
+csim-ref*    The executable reference cache simulator
+test-csim*   Tests your cache simulator
+traces/      Trace files used by test-csim.c
