@@ -181,6 +181,7 @@ int main(int argc, char *argv[]) {
         }
         counter++;
     }
+    fclose(file);
 
     printSummary(hits, misses, evictions);
 
