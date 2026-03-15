@@ -31,7 +31,7 @@ int least_used_line_index(CacheSet *set) {
     return least_used_line_index;
 }
 
-void access_memory(int address, Cache *cache) {
+void access_memory(unsigned long address, Cache *cache) {
     byte_offset = address & ((1 << b) - 1);
     set_index = (address >> b) & ((1 << s) - 1);
     tag = (address >> (b+s));
@@ -40,16 +40,17 @@ void access_memory(int address, Cache *cache) {
 
     for (int i = 0; i < E; i++) {
         //hit
-        if (set->lines[i].tag == tag) {
+        if (set->lines[i].valid == 1 && set->lines[i].tag == tag) {
             set->lines[i].LRU_val = counter;
             hits++;
+            return;
         }
     }
 
     //miss
     int eject_block_index = least_used_line_index(set);
 
-    if(set->lines[eject_block_index].tag == 0) {
+    if(set->lines[eject_block_index].valid == 0) {
         misses++;
     }
     else {
@@ -99,27 +100,20 @@ int main(int argc, char *argv[]) {
 
     FILE *file = fopen(trace_file, "r"); 
 
-    int hits = 0;
-    int misses = 0;
-
-    while ((fscanf(file, " %c %lx, %d", &op, &address, &size) == 3)) {
+    while ((fscanf(file, " %c %lx,%d", &op, &address, &size) == 3)) {
         if(op == 'I') {
             continue;
         }
 
         // Load or Store
         if(op == 'L' || op == 'S') {
-            for (int i = 0; i < size; i++) {
-                access_memory(address+i, &cache);
-            }
+            access_memory(address, &cache);
         }
 
         // Load and Store
         if(op == 'M') {
-            for (int i = 0; i < size; i++) {
-                access_memory(address+i, &cache);
-                access_memory(address+i, &cache);
-            }
+            access_memory(address, &cache);
+            access_memory(address, &cache);
         }
         counter++;
     }
