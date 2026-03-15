@@ -1,3 +1,10 @@
+/*
+ *
+ * Name: Yosef Jaber
+ * UC ID: [Nice Try]
+ *
+ */
+
 #include "lab1.h"
 #include <stdio.h>
 #include <getopt.h>
@@ -34,9 +41,8 @@ typedef struct {
     CacheSet *sets;  
 } Cache;
 
-int s, E, b, byte_offset, set_index, tag, counter, hits, misses, evictions, size; 
-char op;
-unsigned long address;
+/* Global cache parameters and counters - shared across functions */
+int s, E, b, hits, misses, evictions; 
 
 /*
  * least_used_line_index - Finds the least recently used line in a set
@@ -47,8 +53,15 @@ unsigned long address;
  */
 int least_used_line_index(CacheSet *set) {
     int least_used_line_index = 0;
-    for(int i = 1; i < E; i++) {
-        if((set->lines[i].LRU_val < set->lines[least_used_line_index].LRU_val) || (set->lines[i].tag == 0 && set->lines[least_used_line_index].LRU_val == 1)) {
+
+    // Look through all of the lines in the set and compare to the current least used line index updating when necessary 
+    for(int i = 0; i < E; i++) {
+        // If a completely unused line is found return it
+        if (set->lines[i].valid == 0) {
+            return i;
+        }
+
+        if((set->lines[i].LRU_val < set->lines[least_used_line_index].LRU_val)) {
             least_used_line_index = i;
         }
     }
@@ -63,13 +76,14 @@ int least_used_line_index(CacheSet *set) {
  *
  * Updates global hits, misses, and evictions accordingly
  */
-void access_memory(unsigned long address, Cache *cache) {
-    byte_offset = address & ((1 << b) - 1);
-    set_index = (address >> b) & ((1 << s) - 1);
-    tag = (address >> (b+s));
+void access_memory(unsigned long address, Cache *cache, const int counter) {
+    // Use bit masking to isolate each section of the address
+    int set_index = (address >> b) & ((1 << s) - 1);
+    int tag = (address >> (b+s));
 
-    CacheSet *set = &cache->sets[set_index];
+    CacheSet *set = &cache->sets[set_index]; // Set belonging to the address
 
+    // Check each line in the set and check the tag for the address
     for (int i = 0; i < E; i++) {
         if (set->lines[i].valid == 1 && set->lines[i].tag == tag) {
             set->lines[i].LRU_val = counter;
@@ -78,9 +92,11 @@ void access_memory(unsigned long address, Cache *cache) {
         }
     }
 
+    // Find the least used line index to evict
     int eject_block_index = least_used_line_index(set);
 
-    if(set->lines[eject_block_index].valid == 0) {
+    // If it is an invalid block then it is just a miss otherwise it is a miss AND an eviction
+    if (set->lines[eject_block_index].valid == 0) {
         misses++;
     }
     else {
@@ -88,6 +104,7 @@ void access_memory(unsigned long address, Cache *cache) {
         evictions++;
     }
 
+    // Create new line and put it in the eject block index
     CacheLine new_line;
     new_line.valid = 1;
     new_line.tag = tag;
@@ -95,10 +112,24 @@ void access_memory(unsigned long address, Cache *cache) {
     set->lines[eject_block_index] = new_line;
 }
 
+/*
+ * main - Entry point for the cache simulator
+ *
+ * argc: Number of command line arguments
+ * argv: Array of command line argument strings
+ *
+ * Parses arguments, builds cache, reads trace file,
+ * simulates accesses, and prints final hit/miss/eviction summary
+ */
 int main(int argc, char *argv[]) {
-    int opt;
+    int opt, counter, size;
+    counter = 0;
+
+    char op;
+    unsigned long address;
     char *trace_file;
 
+    // Read flags
     while ((opt = getopt(argc, argv, "s:E:b:t:")) != -1) {
         switch (opt) {
             case 's':
@@ -116,6 +147,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // Make the cache and fill it up with default values
     Cache cache;
     cache.sets = malloc((1 << s) * sizeof(CacheSet));
 
@@ -124,9 +156,12 @@ int main(int argc, char *argv[]) {
         for (int j = 0; j < E; j++) {
             cache.sets[i].lines[j].valid = 0;
             cache.sets[i].lines[j].tag = 0;
+            cache.sets[i].lines[j].LRU_val = 0;
         }
     }
 
+
+    // Read the file and access memory one if it is a load or save, access memory twice if it is a modify
     FILE *file = fopen(trace_file, "r"); 
 
     while ((fscanf(file, " %c %lx,%d", &op, &address, &size) == 3)) {
@@ -136,20 +171,20 @@ int main(int argc, char *argv[]) {
 
         // Load or Store
         if(op == 'L' || op == 'S') {
-            access_memory(address, &cache);
+            access_memory(address, &cache, counter);
         }
 
         // Load and Store
         if(op == 'M') {
-            access_memory(address, &cache);
-            access_memory(address, &cache);
+            access_memory(address, &cache, counter);
+            access_memory(address, &cache, counter);
         }
         counter++;
     }
 
     printSummary(hits, misses, evictions);
 
-    // free memory
+    // Free memory
     for (int i = 0; i < (1<<s); i++) {
         free(cache.sets[i].lines);
     }
